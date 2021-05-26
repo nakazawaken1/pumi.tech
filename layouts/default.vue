@@ -10,11 +10,25 @@
     </header>
     <div class="body">
       <div class="main"><Nuxt /></div>
-      <aside>サイドバー</aside>
+      <transition name="fade">
+        <aside :class="{ visible }">サイドバー</aside>
+      </transition>
     </div>
     <footer>フッタ</footer>
+    <menu><font-awesome-icon icon="bars" @click="visible = !visible" /></menu>
   </div>
 </template>
+
+<script lang="ts">
+import Vue from "vue";
+export default Vue.extend({
+  data() {
+    return {
+      visible: false,
+    };
+  },
+});
+</script>
 
 <style lang="scss" scoped>
 .html {
@@ -34,6 +48,7 @@
       text-align: right;
       flex: 1 1 auto;
       font-size: 2rem;
+      letter-spacing: 1rem;
     }
   }
   footer {
@@ -43,13 +58,22 @@
   }
   .body {
     display: flex;
+    position: relative;
     aside {
       width: 20rem;
       padding: 1rem;
       @media (max-width: 320px) {
         display: none;
+        &.visible {
+          display: block;
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+        }
       }
       background-color: #aaa;
+      min-height: 90rem;
     }
     .main {
       flex: 1 1 auto;
@@ -58,6 +82,18 @@
       padding: 1rem;
       min-height: 90rem;
     }
+  }
+  menu {
+    @media (min-width: 321px) {
+      display: none;
+    }
+    padding: 1rem;
+    font-size: 2rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #eee;
   }
 }
 </style>
