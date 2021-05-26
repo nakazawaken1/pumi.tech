@@ -15,7 +15,11 @@
       </transition>
     </div>
     <footer>フッタ</footer>
-    <menu><font-awesome-icon :icon="visible ? 'times' : 'bars'" @click="visible = !visible" /></menu>
+    <menu
+      ><font-awesome-icon
+        :icon="visible ? 'times' : 'bars'"
+        @click="visible = !visible"
+    /></menu>
   </div>
 </template>
 
@@ -35,6 +39,9 @@ export default Vue.extend({
   max-width: 102.4rem;
   margin: 0 auto;
   font-size: 1.3rem;
+  @media (max-width: 320px) {
+    padding-bottom: 5rem;
+  }
   header {
     display: flex;
     align-items: center;
