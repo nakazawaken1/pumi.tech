@@ -15,7 +15,7 @@
       </transition>
     </div>
     <footer>フッタ</footer>
-    <menu><font-awesome-icon icon="bars" @click="visible = !visible" /></menu>
+    <menu><font-awesome-icon :icon="visible ? 'times' : 'bars'" @click="visible = !visible" /></menu>
   </div>
 </template>
 

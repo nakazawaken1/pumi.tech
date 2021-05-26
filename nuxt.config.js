@@ -59,7 +59,7 @@ export default {
 
   fontawesome: {
     icons: {
-      solid: ['faSearch', 'faBell', 'faUserCircle', 'faBars'],
+      solid: ['faSearch', 'faBell', 'faUserCircle', 'faBars', 'faTimes'],
       regular: [],
       brands: []
     }
