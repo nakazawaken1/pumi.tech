@@ -1,62 +1,63 @@
 <template>
-  <div>
-    <Nuxt />
+  <div class="html">
+    <header>
+      <a href="/">ぷみてく</a>
+      <nav>
+        <font-awesome-icon icon="search" />
+        <font-awesome-icon icon="bell" />
+        <font-awesome-icon icon="user-circle" />
+      </nav>
+    </header>
+    <div class="body">
+      <div class="main"><Nuxt /></div>
+      <aside>サイドバー</aside>
+    </div>
+    <footer>フッタ</footer>
   </div>
 </template>
 
-<style>
-html {
-  font-family:
-    'Source Sans Pro',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
-  font-size: 16px;
-  word-spacing: 1px;
-  -ms-text-size-adjust: 100%;
-  -webkit-text-size-adjust: 100%;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-font-smoothing: antialiased;
-  box-sizing: border-box;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-}
-
-.button--green {
-  display: inline-block;
-  border-radius: 4px;
-  border: 1px solid #3b8070;
-  color: #3b8070;
-  text-decoration: none;
-  padding: 10px 30px;
-}
-
-.button--green:hover {
-  color: #fff;
-  background-color: #3b8070;
-}
-
-.button--grey {
-  display: inline-block;
-  border-radius: 4px;
-  border: 1px solid #35495e;
-  color: #35495e;
-  text-decoration: none;
-  padding: 10px 30px;
-  margin-left: 15px;
-}
-
-.button--grey:hover {
-  color: #fff;
-  background-color: #35495e;
+<style lang="scss" scoped>
+.html {
+  max-width: 102.4rem;
+  margin: 0 auto;
+  font-size: 1.3rem;
+  header {
+    display: flex;
+    align-items: center;
+    background-color: #121;
+    color: #fff;
+    padding: 1rem;
+    > a {
+      font-size: 1.5rem;
+    }
+    nav {
+      text-align: right;
+      flex: 1 1 auto;
+      font-size: 2rem;
+    }
+  }
+  footer {
+    background-color: #121;
+    color: #fff;
+    padding: 1rem;
+  }
+  .body {
+    display: flex;
+    aside {
+      width: 20rem;
+      padding: 1rem;
+      @media (max-width: 320px) {
+        display: none;
+      }
+      background-color: #aaa;
+    }
+    .main {
+      flex: 1 1 auto;
+      background-color: #0b7b7b;
+      color: #f1f1f1;
+      padding: 1rem;
+      min-height: 90rem;
+    }
+  }
 }
 </style>
