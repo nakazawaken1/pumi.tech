@@ -45,10 +45,6 @@ jobs:
       - name: Install dependencies 👨🏻‍💻
         run: yarn
 
-
-      - name: Run tests 🧪
-        run: yarn test
-
       - run: yarn generate
 
       - uses: peaceiris/actions-gh-pages@v3
