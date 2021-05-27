@@ -10,9 +10,7 @@
     </header>
     <div class="body">
       <div class="main"><Nuxt /></div>
-      <transition name="fade">
-        <aside :class="{ visible }">サイドバー</aside>
-      </transition>
+      <aside :class="{ visible }">サイドバー</aside>
     </div>
     <footer>フッタ</footer>
     <menu
@@ -67,16 +65,21 @@ export default Vue.extend({
     display: flex;
     position: relative;
     aside {
-      width: 20rem;
+      width: 25rem;
       padding: 1rem;
       @media (max-width: 320px) {
-        display: none;
+        white-space: nowrap;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 0;
+        opacity: 0;
+        transition: 0.5s;
+        transition-timing-function: ease-in-out;
         &.visible {
-          display: block;
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
+          width: 25rem;
+          opacity: 1;
         }
       }
       background-color: #aaa;
@@ -94,7 +97,7 @@ export default Vue.extend({
     @media (min-width: 321px) {
       display: none;
     }
-    padding: 1rem;
+    padding: 1rem 2rem;
     font-size: 2rem;
     position: fixed;
     bottom: 0;
