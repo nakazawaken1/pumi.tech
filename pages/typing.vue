@@ -73,9 +73,8 @@ export default Vue.extend({
     };
   },
   async fetch() {
-    this.words = ((await this.$axios.$get("/api/words", {
+    this.words = ((await this.$axios.$get("https://pumi.tech/api/words", {
       headers: {
-        "Content-Length": 0,
         "Content-Type": "text/plain",
       },
       responseType: "text",
