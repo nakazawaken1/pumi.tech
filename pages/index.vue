@@ -1,6 +1,6 @@
 <template>
   <main>
-    記事
+    記事12
   </main>
 </template>
 

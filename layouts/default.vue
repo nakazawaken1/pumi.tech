@@ -10,7 +10,12 @@
     </header>
     <div class="body">
       <div class="main"><Nuxt /></div>
-      <aside :class="{ visible }">サイドバー</aside>
+      <aside v-if="!sidebar_disabled" :class="{ visible }">
+        <ul>
+          <li><a href="/map">地図</a></li>
+          <li><a href="/typing">タイピング練習</a></li>
+          </ul>
+      </aside>
     </div>
     <footer>フッタ</footer>
     <menu
@@ -27,8 +32,12 @@ export default Vue.extend({
   data() {
     return {
       visible: false,
+      sidebar_disabled: false
     };
   },
+  created() {
+    this.$nuxt.$on('sidebar_disabled', (value: boolean) => this.sidebar_disabled = value);
+  }
 });
 </script>
 
