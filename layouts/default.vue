@@ -106,6 +106,11 @@ export default Vue.extend({
     @media (min-width: 321px) {
       display: none;
     }
+    ul {
+      padding: 0;
+      list-style-type: none;
+    }
+    z-index: 999;
     padding: 1rem 2rem;
     font-size: 2rem;
     position: fixed;
