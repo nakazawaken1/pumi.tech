@@ -54,6 +54,14 @@ class Record {
   static from(o: { [P in keyof Record]: Record[P] }) {
     return new Record(o.text, new Date(o.start), o.typed, new Date(o.end));
   }
+  toJSON() {
+    return {
+      text: this.text,
+      start: this.start,
+      typed: this.typed,
+      end: this.end,
+    };
+  }
 }
 class History {
   constructor(public records: Record[]) {}
@@ -78,6 +86,9 @@ class History {
   static from(json: { records: { [P in keyof Record]: Record[P] }[] }) {
     return new History(json.records.map(Record.from));
   }
+  toJSON() {
+    return { records: this.records };
+  }
 }
 class Key {
   constructor(
@@ -90,6 +101,9 @@ class Key {
       const a = i.split("\t");
       return new Key(a[0], Number(a[1]), a[2]);
     });
+  }
+  toJSON() {
+    return { label: this.label, code: this.code, clazz: this.clazz };
   }
 }
 export type Data = {

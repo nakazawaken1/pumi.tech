@@ -52,6 +52,9 @@
 import Vue from "vue";
 class Todo {
   constructor(public subject: string, public done: boolean = false) {}
+  toJSON() {
+    return { subject: this.subject, done: this.done };
+  }
 }
 type CommandType = "add" | "remove" | "done" | "undone";
 class Command {
@@ -109,6 +112,13 @@ class Command {
   }
   static from(json: Object) {
     return Object.assign(new Command("add", ""), json);
+  }
+  toJSON() {
+    return {
+      type: this.type,
+      subject: this.subject,
+      timestamp: this.timestamp,
+    };
   }
 }
 export type Data = {
