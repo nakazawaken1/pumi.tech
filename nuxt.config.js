@@ -7,8 +7,14 @@ export default {
     title: 'ぷみてく',
     meta: [
       { charset: 'utf-8' },
-      { name: 'viewport', content: 'width=320' },
-      { hid: 'description', name: 'description', content: '' }
+      { hid: 'viewport', name: 'viewport', content: 'width=320' },
+      { hid: 'description', name: 'description', content: 'ぷ ログラミング み ニ てく ニック' },
+      { hid: 'og:site_name', property: 'og:site_name', content: 'サイト名' },
+      { hid: 'og:type', property: 'og:type', content: 'website' },
+      { hid: 'og:url', property: 'og:url', content: 'https://pumi.tech' },
+      { hid: 'og:title', property: 'og:title', content: 'ぷみてく' },
+      { hid: 'og:description', property: 'og:description', content: 'ぷ ログラミング み ニ てく ニック' },
+      { hid: 'og:image', property: 'og:image', content: 'https://pumi.tech/ogp.png' },
     ],
     link: [
       { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },

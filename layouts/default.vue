@@ -18,7 +18,7 @@
         </ul>
       </aside>
     </div>
-    <footer>フッタ</footer>
+    <footer><a href="https://twitter.com/intent/tweet?text=%E3%81%B7%E3%81%BF%E3%81%A6%E3%81%8F&url=https%3A%2F%2Fpumi.tech">&copy; 2021 nakazawaken1</a></footer>
     <menu
       ><font-awesome-icon
         :icon="visible ? 'times' : 'bars'"
