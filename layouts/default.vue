@@ -14,7 +14,8 @@
         <ul>
           <li><a href="/map">地図</a></li>
           <li><a href="/typing">タイピング練習</a></li>
-          </ul>
+          <li><a href="/todo">Todo</a></li>
+        </ul>
       </aside>
     </div>
     <footer>フッタ</footer>
@@ -32,12 +33,15 @@ export default Vue.extend({
   data() {
     return {
       visible: false,
-      sidebar_disabled: false
+      sidebar_disabled: false,
     };
   },
   created() {
-    this.$nuxt.$on('sidebar_disabled', (value: boolean) => this.sidebar_disabled = value);
-  }
+    this.$nuxt.$on(
+      "sidebar_disabled",
+      (value: boolean) => (this.sidebar_disabled = value)
+    );
+  },
 });
 </script>
 
