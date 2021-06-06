@@ -1,43 +1,75 @@
-<template>
+<!--
+# タイピング練習
+* キーボード表示
+* 押されたキーのハイライト
+* 入力単語の表示
+* 入力判定
+* 複数単語対応
+* 残り単語数表示
+* 履歴登録
+* 速度計測
+* 間違い単語表示
+* 複数コース対応
+* 間違い単語選択練習
+--><template>
   <main>
-    <div class="info" v-if="doing">あと {{ indexes.length + 1 }}</div>
-    <div :class="{ display: true, doing }">
-      <template v-if="doing">
-        <span class="typed">{{ typed }}</span
-        ><span class="text">{{ will_typing }}</span>
-      </template>
-      <span v-else>スペースキーで開始します</span>
+    <div class="info">
+      <h1 class="course" v-if="course">
+        Step {{courses.indexOf(course) + 1}} {{ course.subject }}({{ course.words.length }})
+      </h1>
+      <div class="progress" v-if="doing">あと {{ indexes.length + 1 }}</div>
     </div>
-    <div class="keyboard">
-      <ul v-for="(keys, j) in key_layouts" :key="j">
-        <li v-for="(key, i) in keys" :key="i" :class="key_class(key)">
-          {{ key.label }}
-        </li>
-      </ul>
-    </div>
-    <div class="histories">
-      <h3>履歴</h3>
-      <span class="miss_word">ミスした単語</span>
-      <ul>
-        <li v-for="(history, i) in histories" :key="i">
-          {{ history }}
-          <ul class="miss_words">
-            <li
-              v-for="(word, j) in history.miss_words"
-              :key="j"
-              class="miss_word"
-            >
-              {{ word }}
-            </li>
-          </ul>
-        </li>
-      </ul>
+    <template v-if="keyboard.keymaps.length > 0">
+      <div :class="{ display: true, doing }">
+        <template v-if="doing">
+          <span class="typed">{{ typed }}</span
+          ><span class="text">{{ will_typing }}</span>
+        </template>
+        <span v-else>スペースキーで開始します</span>
+      </div>
+      <div class="keyboard">
+        <ul v-for="(keys, j) in keyboard.keymaps" :key="j">
+          <li v-for="(key, i) in keys" :key="i" :class="key_class(key)">
+            {{ key.label }}
+          </li>
+        </ul>
+      </div>
+      <div class="histories">
+        <h3>履歴（クリックすると間違い単語の練習ができます）</h3>
+        <span class="miss_word">ミスした単語</span>
+        <ul>
+          <li
+            v-for="(history, i) in histories"
+            :key="i"
+            :class="{ clickable: history.miss_words.length > 0 }"
+            @click="history.miss_words.length > 0 ? review(history) : void 0"
+          >
+            {{ history }}
+            <ul class="miss_words">
+              <li
+                v-for="(word, j) in history.miss_words"
+                :key="j"
+                class="miss_word"
+              >
+                {{ word }}
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </template>
+    <div class="alert" v-if="alert.length > 0">
+      <form class="popup" @submit.prevent="alert = ''">
+        <p>{{ alert }}</p>
+        <button type="submit"><font-awesome-icon icon="times" /></button>
+      </form>
     </div>
   </main>
 </template>
 
 <script lang="ts">
 import Vue from "vue";
+
 class Record {
   constructor(
     public text: string,
@@ -63,12 +95,16 @@ class Record {
     };
   }
 }
+
 class History {
   constructor(public records: Record[]) {}
   get miss_words() {
     return this.records.filter((i) => i.text != i.typed).map((i) => i.text);
   }
   toString() {
+    if (this.records.length <= 0) {
+      debugger;
+    }
     const duration = this.records.reduce((p, c) => p + c.duration, 0);
     const seconds = Math.floor(duration / 1000);
     const ms = ("000" + (duration % 1000)).slice(-3);
@@ -90,169 +126,184 @@ class History {
     return { records: this.records };
   }
 }
+
 class Key {
   constructor(
     public label: string,
     public code: number,
     public clazz?: string
   ) {}
-  static from(...pairs: string[]): Key[] {
-    return pairs.map((i) => {
-      const a = i.split("\t");
-      return new Key(a[0], Number(a[1]), a[2]);
-    });
-  }
   toJSON() {
     return { label: this.label, code: this.code, clazz: this.clazz };
   }
 }
-export type Data = {
+
+type Handler = (code: number, key: string) => void;
+class Keyboard {
+  handler?: Handler;
+  constructor(public keymaps: Key[][] = [], public pressed: number[] = []) {}
+  attach(target: Element | Document) {
+    target.addEventListener("keydown", this.keydown as (e: Event) => void);
+    target.addEventListener("keyup", this.keyup as (e: Event) => void);
+  }
+  detach(target: Element | Document) {
+    target.removeEventListener("keydown", this.keydown as (e: Event) => void);
+    target.removeEventListener("keyup", this.keyup as (e: Event) => void);
+  }
+  keydown = (e: KeyboardEvent) => {
+    e.preventDefault();
+    console.log(e);
+    this.pressed.push(e.keyCode);
+    if (this.handler) this.handler(e.keyCode, e.key);
+  };
+  keyup = (e: KeyboardEvent) => {
+    e.preventDefault();
+    const index = this.pressed.indexOf(e.keyCode);
+    if (index >= 0) {
+      this.pressed.splice(index, 1);
+    }
+  };
+  set onpress(handler: Handler) {
+    this.handler = handler;
+  }
+  is_pressed(code: number) {
+    return this.pressed.includes(code);
+  }
+  is_valid(code: number) {
+    return this.keymaps.flat().find((i) => i.code == code) != null;
+  }
+  load(text: string) {
+    this.keymaps = text.split(/\r?\n/).map((line: string) =>
+      line.split("\t").map((item) => {
+        const [label, code, clazz] = item.split("|");
+        return new Key(label, Number(code), clazz);
+      })
+    );
+  }
+}
+
+class Course {
+  constructor(public subject: string, public words: string[]) {}
+  toJSON() {
+    return { subject: this.subject, words: this.words };
+  }
+}
+
+type Data = {
+  keyboard: Keyboard;
   typed: string;
   text: string;
-  key_layouts: readonly Key[][];
-  pressed: number[];
-  words: string[];
   indexes: number[];
   records: Record[];
   doing: boolean;
   histories: History[];
+  courses: Course[];
+  course_index: number;
+  alert: string;
 };
+
 export default Vue.extend({
   data(): Data {
     return {
+      keyboard: new Keyboard(),
       typed: "",
       text: "",
-      key_layouts: [
-        Key.from(
-          "1\t49",
-          "2\t50",
-          "3\t51",
-          "4\t52",
-          "5\t53",
-          "6\t54",
-          "7\t55",
-          "8\t56",
-          "9\t57",
-          "0\t48",
-          "-\t189",
-          "^\t222",
-          "\\\t220",
-          "←\t8"
-        ),
-        Key.from(
-          "Q\t81",
-          "W\t87",
-          "E\t69",
-          "R\t82",
-          "T\t84",
-          "Y\t89",
-          "U\t85",
-          "I\t73",
-          "O\t79",
-          "P\t80",
-          "@\t192",
-          "[\t219",
-          "Enter\t13\tEnter"
-        ),
-        Key.from(
-          "A\t65",
-          "S\t83",
-          "D\t68",
-          "F\t70",
-          "G\t71",
-          "H\t72",
-          "J\t74",
-          "K\t75",
-          "L\t76",
-          ";\t187",
-          ":\t186",
-          "]\t221"
-        ),
-        Key.from(
-          "Shift\t16\tShiftLeft",
-          "Z\t90",
-          "X\t88",
-          "C\t67",
-          "V\t86",
-          "B\t66",
-          "N\t78",
-          "M\t77",
-          ",\t188",
-          ".\t190",
-          "/\t191",
-          "_\t226",
-          "Shift\t16\tShiftRight"
-        ),
-        Key.from(" \t32\tSpace"),
-      ],
-      pressed: [],
-      words: ["abc", "def"],
       indexes: [],
       records: [],
       doing: false,
       histories: [],
+      courses: [],
+      course_index: 0,
+      alert: "",
     };
   },
   async fetch() {
-    this.words = (
-      await this.$axios.$get("https://pumi.tech/api/words", {
-        headers: {
-          "Content-Type": "text/plain",
-        },
-        responseType: "text",
-      })
-    )
-      .split(/\r?\n/)
-      .filter((i: string) => i.trim().length > 0);
+    const text_options = {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+      responseType: "text",
+    };
+    this.courses = await Promise.all((await this.$axios.$get("/api/index", text_options)).split(/\r?\n/).map(async (line: string) => {
+      let [subject, ...words] = line.split("\t");
+      if(words.length == 1) {
+        words = (await this.$axios.$get(words[0], text_options))
+          .split(/\r?\n/)
+          .filter((i: string) => i.trim().length > 0);
+      }
+      return new Course(subject, words);
+    }));
+    console.log(this.courses);
+    this.keyboard.load(await this.$axios.$get("/api/keymaps", text_options));
+  },
+  fetchOnServer: false,
+  created() {
+    this.$nuxt.$emit("sidebar_disabled", true);
   },
   mounted() {
     this.histories =
       (localStorage.typing__histories &&
         JSON.parse(localStorage.typing__histories).map(History.from)) ||
       [];
-    this.$nuxt.$emit("sidebar_disabled", true);
-    document.addEventListener("keydown", this.keydown);
-    document.addEventListener("keyup", this.keyup);
+    this.keyboard.attach(document);
+    this.keyboard.onpress = this.onpress;
   },
   beforeDestroy() {
-    document.removeEventListener("keydown", this.keydown);
-    document.removeEventListener("keyup", this.keyup);
+    this.keyboard.detach(document);
   },
   computed: {
-    keys(): Key[] {
-      return this.key_layouts.flat();
-    },
     will_typing(): string {
       return this.text.substr(this.typed.length);
     },
     record(): Record {
       return this.records[this.records.length - 1];
     },
+    course(): Course {
+      return this.courses[this.course_index];
+    },
+  },
+  watch: {
+    histories(value: History[]) {
+      localStorage && (localStorage.typing__histories = JSON.stringify(value));
+    },
   },
   methods: {
-    keydown(e: KeyboardEvent) {
-      console.log(e);
-      e.preventDefault();
-      if (!this.doing && e.keyCode == 32) {
-        this.indexes = Array.from(Array(this.words.length)).map((_, i) => i);
-        for (let i of this.indexes) {
-          const j = Math.floor(Math.random() * this.words.length);
-          [this.indexes[j], this.indexes[i]] = [
-            this.indexes[i],
-            this.indexes[j],
-          ];
-        }
+    next() {
+      this.typed = "";
+      if (this.record) this.record.end = new Date();
+      if (this.indexes.length <= 0) {
+        this.doing = false;
+        this.course_index = (this.course_index + 1) % this.courses.length;
+        this.histories.push(new History(this.records));
+        this.records = [];
+        this.text = "";
+      } else {
+        this.text = this.course.words[this.indexes.shift()!];
+        this.records.push(new Record(this.text));
+      }
+    },
+    setup(shuffle: boolean) {
+      this.indexes = Array.from(Array(this.course.words.length)).map(
+        (_, i) => i
+      );
+      if (!shuffle) return;
+      for (let i of this.indexes) {
+        const j = Math.floor(Math.random() * this.course.words.length);
+        [this.indexes[j], this.indexes[i]] = [this.indexes[i], this.indexes[j]];
+      }
+    },
+    onpress(code: number, key: string) {
+      if (!this.doing && code == 32) {
+        this.setup(true);
         this.next();
         this.doing = true;
         return;
       }
-      const key = this.keys.find((i) => i.code == e.keyCode);
-      if (key != null) {
-        this.pressed.push(key.code);
+      if (this.keyboard.is_valid(code)) {
         if (!this.doing) return;
-        this.record.typed += e.key;
-        if (this.will_typing.charAt(0) == e.key) {
-          this.typed = this.typed + e.key;
+        this.record.typed += key;
+        if (this.will_typing.charAt(0) == key) {
+          this.typed = this.typed + key;
         }
         if (this.typed == this.text) {
           this.record.text = this.text;
@@ -260,37 +311,18 @@ export default Vue.extend({
         }
       }
     },
-    keyup(e: KeyboardEvent) {
-      e.preventDefault();
-      const index = this.pressed.indexOf(e.keyCode);
-      if (index >= 0) {
-        this.pressed.splice(index, 1);
-      }
-    },
-    next() {
-      this.typed = "";
-      if (this.record) this.record.end = new Date();
-      if (this.indexes.length <= 0) {
-        this.doing = false;
-        this.histories.push(new History(this.records));
-        this.records = [];
-        this.text = "";
-      } else {
-        this.text = this.words[this.indexes.shift()!];
-        this.records.push(new Record(this.text));
+    review(history: History) {
+      if (this.doing) {
+        this.alert = "終了してからです";
+        return;
       }
     },
     key_class(key: Key) {
       const result: { [index: string]: boolean } = {
-        pressed: this.pressed.includes(key.code),
+        pressed: this.keyboard.is_pressed(key.code),
       };
       if (key.clazz) result["key_" + key.clazz] = true;
       return result;
-    },
-  },
-  watch: {
-    histories(value: History[]) {
-      localStorage && (localStorage.typing__histories = JSON.stringify(value));
     },
   },
 });
@@ -301,7 +333,12 @@ main {
   margin: 1em auto;
   display: table;
   .info {
-    text-align: right;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .progress {
+      text-align: right;
+    }
   }
   .display {
     font-size: 5rem;
@@ -379,6 +416,36 @@ main {
       color: red;
       margin: 0.1rem;
     }
+  }
+  .alert {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 9999;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    .popup {
+      background-color: white;
+      color: #333;
+      border-radius: 1em;
+      padding: 1em;
+      position: relative;
+      margin-bottom: 5rem;
+      button {
+        position: absolute;
+        top: -2rem;
+        right: -2rem;
+        width: 3rem;
+        height: 3rem;
+      }
+    }
+  }
+  .clickable {
+    cursor: pointer;
   }
 }
 </style>

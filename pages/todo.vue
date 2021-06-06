@@ -11,8 +11,7 @@
 * 操作履歴追加
 * Undo処理追加
 * 初期フォーカス設定
--->
-<template>
+--><template>
   <main>
     <h1>Todo</h1>
     <form class="todos" @submit.prevent="add">
