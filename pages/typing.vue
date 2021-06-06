@@ -327,7 +327,6 @@ export default Vue.extend({
           })
       )
     ).filter((i) => i != null) as Course[];
-    console.log(this.courses);
   },
   fetchOnServer: false,
   created() {
