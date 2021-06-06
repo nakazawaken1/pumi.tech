@@ -45,7 +45,7 @@ jobs:
       - name: Install dependencies 👨🏻‍💻
         run: yarn
 
-      - run: yarn generate
+      - run: BASE_URL=https://pumi.tech yarn generate
 
       - uses: peaceiris/actions-gh-pages@v3
         with:
