@@ -15,8 +15,11 @@
 * ローマ字対応
 * 入力ヒント
 * キーハイライト
-todo
 * 促音対応
+todo
+* ミスするまでヒント非表示
+* 別スペル入力対応
+* Backspace調整
 * 基礎スキップ
 --><template>
   <main v-if="course">
@@ -35,7 +38,11 @@ todo
           ><span class="will_typing">{{ will_typing }}</span>
         </template>
         <span v-else>スペースキーで開始します</span>
-        <div class="hint">{{ text != hint ? hint : "　" }}</div>
+        <div class="hint" v-if="true">
+          <span class="raw_typed">{{ raw_typed }}</span
+          ><span>{{ hint.substr(raw_typed.length) }}</span>
+        </div>
+        <div v-else>&nbsp;</div>
       </div>
       <div class="keyboard">
         <ul v-for="(keys, j) in keyboard.keymaps" :key="j">
@@ -207,21 +214,33 @@ class Keyboard {
     }
   }
   match(expected: string, input: string) {
-    const candidates = this.translators.filter((i) =>
-      expected.startsWith(i.to)
-    );
-    let result = { from: "", to: "" };
-    candidates.forEach((i) => {
-      const froms = i.froms.filter((j) => input.endsWith(j));
-      if (froms.length > 0) {
-        const from = froms.reduce((a, b) => (a.length > b.length ? a : b));
-        if (from != null && i.to.length > result.to.length) {
-          result.from = from;
-          result.to = i.to;
+    const inner = (a: (i: string) => string, b: (i: string) => string) => {
+      const candidates = this.translators.filter((i) =>
+        expected.startsWith(a(i.to))
+      );
+      let result = { from: "", to: "" };
+      candidates.forEach((i) => {
+        const froms = i.froms.filter((j) => input.endsWith(b(j)));
+        if (froms.length > 0) {
+          const from = froms.reduce((a, b) => (a.length > b.length ? a : b));
+          if (from != null && i.to.length > result.to.length) {
+            result.from = b(from);
+            result.to = a(i.to);
+          }
         }
-      }
-    });
-    return result.from.length ? result : null;
+      });
+      return result.from.length ? result : null;
+    };
+    return (
+      inner(
+        (i) => "っ" + i,
+        (i) => i.charAt(0) + i
+      ) ||
+      inner(
+        (i) => i,
+        (i) => i
+      )
+    );
   }
   hint(word: string) {
     const result = [];
@@ -233,12 +252,24 @@ class Keyboard {
         word = word.substr(1);
         continue;
       }
-      const translator = this.translators
-        .filter((i) => word.startsWith(i.to))
-        .sort((a, b) => b.to.length - a.to.length)[0];
-      const letter = translator.froms[0];
-      result.push(letter);
-      word = word.substr(translator.to.length);
+      const inner = (a: (i: string) => string, b: (i: string) => string) => {
+        const translator = this.translators
+          .filter((i) => word.startsWith(a(i.to)))
+          .sort((a, b) => b.to.length - a.to.length)[0];
+        if (translator == null) return false;
+        const letter = b(translator.froms[0]);
+        result.push(letter);
+        word = word.substr(translator.to.length);
+        return true;
+      };
+      inner(
+        (i) => "っ" + i,
+        (i) => i.charAt(0) + i
+      ) ||
+        inner(
+          (i) => i,
+          (i) => i
+        );
     }
     return result.join("");
   }
@@ -258,6 +289,7 @@ class Course {
 type Data = {
   keyboard: Keyboard;
   typed: string;
+  raw_typed: string;
   text: string;
   indexes: number[];
   records: Record[];
@@ -275,6 +307,7 @@ export default Vue.extend({
     return {
       keyboard: new Keyboard(),
       typed: "",
+      raw_typed: "",
       text: "",
       indexes: [],
       records: [],
@@ -359,6 +392,9 @@ export default Vue.extend({
     hint(): string {
       return this.keyboard.hint(this.text);
     },
+    hint_visible(): boolean {
+      return !this.text.startsWith(this.record?.typed);
+    },
   },
   watch: {
     histories(value: History[]) {
@@ -368,6 +404,7 @@ export default Vue.extend({
   methods: {
     next() {
       this.typed = "";
+      this.raw_typed = "";
       if (this.record) {
         this.record.end = new Date();
       }
@@ -424,7 +461,12 @@ export default Vue.extend({
       if (this.keyboard.is_valid(code)) {
         if (code == 8) {
           if (this.typed.length > 0) {
+            const letter = this.typed.slice(-1)[0];
             this.typed = this.typed.slice(0, -1);
+            this.raw_typed = this.raw_typed.slice(
+              0,
+              -this.keyboard.match(letter, this.raw_typed)!.from.length
+            );
           }
           return;
         }
@@ -432,6 +474,7 @@ export default Vue.extend({
         this.record.typed += key;
         if (this.will_typing.charAt(0) == key) {
           this.typed += key;
+          this.raw_typed += key;
         } else {
           const matched = this.keyboard.match(
             this.will_typing,
@@ -441,6 +484,7 @@ export default Vue.extend({
             this.typed += matched.to;
             this.record.typed =
               this.record.typed.slice(0, -matched.from.length) + matched.to;
+            this.raw_typed += matched.from;
           }
         }
         if (this.typed == this.text) {
@@ -499,6 +543,9 @@ main {
       padding: 0 0 0 1em;
       border-top: 1px solid #eee;
       border-bottom: 1px solid #eee;
+    }
+    .raw_typed {
+      color: #aaa;
     }
     .will_typing {
       padding: 0 1em 0 0;
@@ -599,6 +646,9 @@ main {
       padding: 1em;
       position: relative;
       margin-bottom: 5rem;
+      min-width: 30em;
+      min-height: 10em;
+      text-align: center;
       button {
         position: absolute;
         top: -2rem;
