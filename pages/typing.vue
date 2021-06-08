@@ -16,6 +16,7 @@
 * 入力ヒント
 * キーハイライト
 * 促音対応
+* 効果音Safari対応
 todo
 * ミスするまでヒント非表示
 * 別スペル入力対応
@@ -259,7 +260,7 @@ class Keyboard {
         if (translator == null) return false;
         const letter = b(translator.froms[0]);
         result.push(letter);
-        word = word.substr(translator.to.length);
+        word = word.substr(a(translator.to).length);
         return true;
       };
       inner(
@@ -286,6 +287,28 @@ class Course {
   }
 }
 
+class SE {
+  buffer?: AudioBuffer;
+  constructor(public url: string, protected context = new AudioContext()) {
+    const request = new XMLHttpRequest();
+    request.open("GET", url, true);
+    request.responseType = "arraybuffer";
+    request.onload = async () =>
+      (this.buffer = await this.context.decodeAudioData(request.response));
+    request.send();
+  }
+  async play() {
+    if (!this.buffer) return;
+    if (this.context.state == "suspended") {
+      await this.context.resume();
+    }
+    var source = this.context.createBufferSource();
+    source.buffer = this.buffer;
+    source.connect(this.context.destination);
+    source.start(0);
+  }
+}
+
 type Data = {
   keyboard: Keyboard;
   typed: string;
@@ -298,7 +321,7 @@ type Data = {
   courses: Course[];
   course_index: number;
   alert: string;
-  audio: HTMLAudioElement | null;
+  se: SE | null;
   review_course: Course | null;
 };
 
@@ -316,7 +339,7 @@ export default Vue.extend({
       courses: [],
       course_index: 0,
       alert: "",
-      audio: null,
+      se: null,
       review_course: null,
     };
   },
@@ -366,7 +389,7 @@ export default Vue.extend({
     this.$nuxt.$emit("sidebar_disabled", true);
   },
   mounted() {
-    this.audio = new Audio("/type.mp3");
+    this.se = new SE("/type.mp3");
     this.histories =
       (localStorage.typing__histories &&
         JSON.parse(localStorage.typing__histories).map(History.from)) ||
@@ -451,7 +474,7 @@ export default Vue.extend({
         this.alert = "";
         return;
       }
-      this.audio?.play();
+      this.se?.play();
       if (!this.doing && code == 32) {
         this.setup(true);
         this.next();
