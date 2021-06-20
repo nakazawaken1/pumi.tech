@@ -18,7 +18,12 @@
         </ul>
       </aside>
     </div>
-    <footer><a href="https://twitter.com/intent/tweet?text=%E3%81%B7%E3%81%BF%E3%81%A6%E3%81%8F&url=https%3A%2F%2Fpumi.tech">&copy; 2021 nakazawaken1</a></footer>
+    <footer>
+      <a
+        href="https://twitter.com/intent/tweet?text=%E3%81%B7%E3%81%BF%E3%81%A6%E3%81%8F&amp;url=https%3A%2F%2Fpumi.tech"
+        >&copy; 2021 nakazawaken1</a
+      >
+    </footer>
     <menu
       ><font-awesome-icon
         :icon="visible ? 'times' : 'bars'"
@@ -73,6 +78,7 @@ export default Vue.extend({
     background-color: #121;
     color: #fff;
     padding: 1rem;
+    text-align: center;
   }
   .body {
     display: flex;

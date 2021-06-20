@@ -17,33 +17,49 @@
 * キーハイライト
 * 促音対応
 * 効果音Safari対応
-todo
 * ミスするまでヒント非表示
+* 漢字表示対応
+* 撥音補助線
+## todo
 * 別スペル入力対応
 * Backspace調整
 * 基礎スキップ
+* 毎日ルーチン
 --><template>
   <main v-if="course">
     <div class="info">
       <h1 class="course">
         Step {{ courses.indexOf(course) + 1 }} {{ course.subject }}({{
-          course.words.length
+          course.length
         }})
       </h1>
       <div class="progress" v-if="doing">あと {{ indexes.length + 1 }}</div>
     </div>
     <template v-if="keyboard.keymaps.length > 0">
       <div :class="{ display: true, doing }">
-        <template v-if="doing">
-          <span class="typed">{{ typed }}</span
-          ><span class="will_typing">{{ will_typing }}</span>
-        </template>
-        <span v-else>スペースキーで開始します</span>
-        <div class="hint" v-if="true">
-          <span class="raw_typed">{{ raw_typed }}</span
-          ><span>{{ hint.substr(raw_typed.length) }}</span>
+        <div :class="{ kana: true, hidden: word == text }">
+          <template v-if="doing">
+            <span class="typed">{{ typed }}</span
+            ><span class="will_typing">{{ will_typing }}</span> </template
+          >&nbsp;
         </div>
-        <div v-else>&nbsp;</div>
+        <template v-if="doing">
+          <div class="line" v-if="word == text">
+            <span class="typed">{{ typed }}</span
+            ><span class="will_typing">{{ will_typing }}</span>
+          </div>
+          <div class="line" v-else>{{ word }}</div>
+        </template>
+        <div class="prompt" v-else>スペースキーで開始します</div>
+        <div
+          :class="{
+            hint: true,
+            hidden: !record || hint.startsWith(record.raw_typed),
+          }"
+        >
+          <span class="raw_typed">{{ raw_typed }}</span
+          ><span>{{ hint.substr(raw_typed.length) }}&nbsp;</span>
+        </div>
       </div>
       <div class="keyboard">
         <ul v-for="(keys, j) in keyboard.keymaps" :key="j">
@@ -65,17 +81,31 @@ todo
             {{ history }}
             <ul class="miss_words">
               <li
-                v-for="(word, j) in history.miss_words"
+                v-for="(miss_word, j) in history.miss_words"
                 :key="j"
                 class="miss_word"
               >
-                {{ word }}
+                {{ miss_word }}
               </li>
             </ul>
           </li>
         </ul>
       </div>
     </template>
+    <dl class="debug" v-if="$is_dev">
+      <dt>text</dt>
+      <dd>{{ text }}</dd>
+      <dt>typed</dt>
+      <dd>{{ typed }}</dd>
+      <dt>raw_typed</dt>
+      <dd>{{ raw_typed }}</dd>
+      <dt>record.typed</dt>
+      <dd>{{ record && record.typed }}</dd>
+      <dt>hint</dt>
+      <dd>{{ hint }}</dd>
+      <dt>record.raw_typed</dt>
+      <dd>{{ record && record.raw_typed }}</dd>
+    </dl>
     <div class="alert" v-if="alert.length > 0">
       <form class="popup" @submit.prevent="alert = ''">
         <p>{{ alert }}</p>
@@ -88,250 +118,36 @@ todo
 
 <script lang="ts">
 import Vue from "vue";
-
-class Record {
-  constructor(
-    public text: string,
-    public start: Date = new Date(),
-    public typed: string = "",
-    public end: Date = new Date()
-  ) {}
-  get duration() {
-    return this.end.getTime() - this.start.getTime();
-  }
-  get miss_count() {
-    return this.typed.length - this.text.length;
-  }
-  static from(o: { [P in keyof Record]: Record[P] }) {
-    return new Record(o.text, new Date(o.start), o.typed, new Date(o.end));
-  }
-  toJSON() {
-    return {
-      text: this.text,
-      start: this.start,
-      typed: this.typed,
-      end: this.end,
-    };
-  }
-}
-
-class History {
-  miss_words: string[];
-  constructor(public subject: string, public records: Record[]) {
-    this.miss_words = [
-      ...new Set(
-        this.records.filter((i) => i.text != i.typed).map((i) => i.text)
-      ),
-    ];
-  }
-  toString() {
-    const duration = this.records.reduce((p, c) => p + c.duration, 0);
-    const seconds = Math.floor(duration / 1000);
-    const ms = ("000" + (duration % 1000)).slice(-3);
-    const typed_count = this.records.reduce((p, c) => p + c.typed.length, 0);
-    const text_count = this.records.reduce((p, c) => p + c.text.length, 0);
-    const speed = text_count / (duration / 1000);
-    return `[${this.start.toLocaleString()}] ${this.subject}(${
-      this.records.length
-    }) ${seconds}.${ms} 秒 タイプ数 ${typed_count} ミス数 ${
-      typed_count - text_count
-    } 速度 ${Math.floor(speed)}.${("00" + Math.floor(speed * 100)).slice(
-      -2
-    )} 文字/秒`;
-  }
-  get start() {
-    return this.records[0].start;
-  }
-  static from(json: { [P in keyof History]: History[P] }) {
-    return new History(json.subject, json.records.map(Record.from));
-  }
-  toJSON() {
-    return { subject: this.subject, records: this.records };
-  }
-}
-
-class Key {
-  constructor(
-    public label: string,
-    public code: number,
-    public clazz?: string
-  ) {}
-  toJSON() {
-    return { label: this.label, code: this.code, clazz: this.clazz };
-  }
-}
-
-type Handler = (code: number, key: string) => void;
-class Keyboard {
-  handler?: Handler;
-  keymaps: Key[][] = [];
-  pressed: number[] = [];
-  translators: { to: string; froms: string[] }[] = [];
-  attach(target: Element | Document) {
-    target.addEventListener("keydown", this.keydown as (e: Event) => void);
-    target.addEventListener("keyup", this.keyup as (e: Event) => void);
-  }
-  detach(target: Element | Document) {
-    target.removeEventListener("keydown", this.keydown as (e: Event) => void);
-    target.removeEventListener("keyup", this.keyup as (e: Event) => void);
-  }
-  keydown = (e: KeyboardEvent) => {
-    e.preventDefault();
-    if (!this.pressed.includes(e.keyCode)) {
-      this.pressed.push(e.keyCode);
-    }
-    if (this.handler) {
-      this.handler(e.keyCode, e.key);
-    }
-  };
-  keyup = (e: KeyboardEvent) => {
-    e.preventDefault();
-    const index = this.pressed.indexOf(e.keyCode);
-    if (index >= 0) {
-      this.pressed.splice(index, 1);
-    }
-  };
-  set onpress(handler: Handler) {
-    this.handler = handler;
-  }
-  is_pressed(code: number) {
-    return this.pressed.includes(code);
-  }
-  is_valid(code: number) {
-    return this.keymaps.flat().find((i) => i.code == code) != null;
-  }
-  load(keymap: string, romaji: string = "") {
-    this.keymaps = keymap.split(/\r?\n/).map((line: string) =>
-      line.split("\t").map((item) => {
-        const [label, code, clazz] = item.split("|");
-        return new Key(label, Number(code), clazz);
-      })
-    );
-    if (romaji.length > 0) {
-      this.translators = romaji.split(/\r?\n/).map((line: string) => {
-        const [to, ...froms] = line.split("\t");
-        return { to, froms };
-      });
-    }
-  }
-  match(expected: string, input: string) {
-    const inner = (a: (i: string) => string, b: (i: string) => string) => {
-      const candidates = this.translators.filter((i) =>
-        expected.startsWith(a(i.to))
-      );
-      let result = { from: "", to: "" };
-      candidates.forEach((i) => {
-        const froms = i.froms.filter((j) => input.endsWith(b(j)));
-        if (froms.length > 0) {
-          const from = froms.reduce((a, b) => (a.length > b.length ? a : b));
-          if (from != null && i.to.length > result.to.length) {
-            result.from = b(from);
-            result.to = a(i.to);
-          }
-        }
-      });
-      return result.from.length ? result : null;
-    };
-    return (
-      inner(
-        (i) => "っ" + i,
-        (i) => i.charAt(0) + i
-      ) ||
-      inner(
-        (i) => i,
-        (i) => i
-      )
-    );
-  }
-  hint(word: string) {
-    const result = [];
-    while (word.length > 0) {
-      if (
-        /[- ^\\@[;:\],./!"#$%&'()=~|`{+*}<>?_0-9a-zA-Z]/.test(word.charAt(0))
-      ) {
-        result.push(word.charAt(0));
-        word = word.substr(1);
-        continue;
-      }
-      const inner = (a: (i: string) => string, b: (i: string) => string) => {
-        const translator = this.translators
-          .filter((i) => word.startsWith(a(i.to)))
-          .sort((a, b) => b.to.length - a.to.length)[0];
-        if (translator == null) return false;
-        const letter = b(translator.froms[0]);
-        result.push(letter);
-        word = word.substr(a(translator.to).length);
-        return true;
-      };
-      inner(
-        (i) => "っ" + i,
-        (i) => i.charAt(0) + i
-      ) ||
-        inner(
-          (i) => i,
-          (i) => i
-        );
-    }
-    return result.join("");
-  }
-}
-
-class Course {
-  constructor(
-    public subject: string,
-    public words: string[],
-    public limit_keys?: Key[]
-  ) {}
-  toJSON() {
-    return { subject: this.subject, words: this.words };
-  }
-}
-
-class SE {
-  buffer?: AudioBuffer;
-  constructor(public url: string, protected context = new AudioContext()) {
-    const request = new XMLHttpRequest();
-    request.open("GET", url, true);
-    request.responseType = "arraybuffer";
-    request.onload = async () =>
-      (this.buffer = await this.context.decodeAudioData(request.response));
-    request.send();
-  }
-  async play() {
-    if (!this.buffer) return;
-    if (this.context.state == "suspended") {
-      await this.context.resume();
-    }
-    var source = this.context.createBufferSource();
-    source.buffer = this.buffer;
-    source.connect(this.context.destination);
-    source.start(0);
-  }
-}
-
-type Data = {
-  keyboard: Keyboard;
-  typed: string;
-  raw_typed: string;
-  text: string;
-  indexes: number[];
-  records: Record[];
-  doing: boolean;
-  histories: History[];
-  courses: Course[];
-  course_index: number;
-  alert: string;
-  se: SE | null;
-  review_course: Course | null;
-};
+import { SE } from "~/logic/se";
+import { Key, Keyboard } from "~/logic/keyboard";
+import { Record, History } from "~/logic/history";
+import { Course } from "~/logic/course";
 
 export default Vue.extend({
-  data(): Data {
+  data(): {
+    keyboard: Keyboard;
+    typed: string;
+    raw_typed: string;
+    word: string;
+    text: string;
+    hint: string;
+    indexes: number[];
+    records: Record[];
+    doing: boolean;
+    histories: History[];
+    courses: Course[];
+    course_index: number;
+    alert: string;
+    se: SE | null;
+    review_course: Course | null;
+  } {
     return {
       keyboard: new Keyboard(),
       typed: "",
       raw_typed: "",
+      word: "",
       text: "",
+      hint: "",
       indexes: [],
       records: [],
       doing: false,
@@ -350,39 +166,17 @@ export default Vue.extend({
       },
       responseType: "text",
     };
-    const [keymaps, romaji] = await Promise.all([
+    const [keymaps, romaji, course_index] = await Promise.all([
       this.$axios.$get("/api/typing/keymaps", options),
       this.$axios.$get("/api/typing/romaji", options),
+      this.$axios.$get("/api/typing/index", options),
     ]);
     this.keyboard.load(keymaps, romaji);
-    this.courses = (
-      await Promise.all(
-        (await this.$axios.$get("/api/typing/index", options))
-          .split(/\r?\n/)
-          .map(async (line: string) => {
-            let [subject, ...words] = line.split("\t");
-            if (subject.startsWith("#")) return;
-            if (words.length == 1) {
-              words = (await this.$axios.$get(words[0], options))
-                .split(/\r?\n/)
-                .filter((i: string) => i.trim().length > 0);
-            }
-            let limit_keys: Key[] | undefined = undefined;
-            if (subject.startsWith("|")) {
-              limit_keys = words
-                .map(
-                  (i) =>
-                    this.keyboard.keymaps
-                      .flat()
-                      .find((j) => j.label.toLowerCase() == i)!
-                )
-                .filter((i) => i != null);
-              subject = subject.substr(1);
-            }
-            return new Course(subject, words, limit_keys);
-          })
-      )
-    ).filter((i) => i != null) as Course[];
+    this.courses = await Course.load(
+      course_index,
+      this.keyboard.keymaps.flat(),
+      (url) => this.$axios.$get(url, options)
+    );
   },
   fetchOnServer: false,
   created() {
@@ -411,12 +205,6 @@ export default Vue.extend({
       return this.review_course
         ? this.review_course
         : this.courses[this.course_index];
-    },
-    hint(): string {
-      return this.keyboard.hint(this.text);
-    },
-    hint_visible(): boolean {
-      return !this.text.startsWith(this.record?.typed);
     },
   },
   watch: {
@@ -453,19 +241,22 @@ export default Vue.extend({
           }
         }
         this.records = [];
+        this.word = "";
         this.text = "";
+        this.hint = "";
       } else {
-        this.text = this.course.words[this.indexes.shift()!];
+        const index = this.indexes.shift()!;
+        this.word = this.course.words[index];
+        this.text = this.course.kanas[index];
+        this.hint = this.keyboard.hint(this.text);
         this.records.push(new Record(this.text));
       }
     },
     setup(shuffle: boolean) {
-      this.indexes = Array.from(Array(this.course.words.length)).map(
-        (_, i) => i
-      );
+      this.indexes = Array.from(Array(this.course.length)).map((_, i) => i);
       if (!shuffle) return;
       for (let i of this.indexes) {
-        const j = Math.floor(Math.random() * this.course.words.length);
+        const j = Math.floor(Math.random() * this.course.length);
         [this.indexes[j], this.indexes[i]] = [this.indexes[i], this.indexes[j]];
       }
     },
@@ -495,6 +286,7 @@ export default Vue.extend({
         }
         if (!this.doing) return;
         this.record.typed += key;
+        this.record.raw_typed += key;
         if (this.will_typing.charAt(0) == key) {
           this.typed += key;
           this.raw_typed += key;
@@ -557,23 +349,39 @@ main {
       text-align: right;
     }
   }
+  .kana {
+    font-size: 3rem;
+  }
+  .line {
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    position: relative;
+    &:after {
+      position: absolute;
+      top: 30%;
+      width: 100%;
+      left: 0;
+      border-top: 1px solid rgba(200, 200, 200, 0.5);
+      content: "";
+    }
+  }
+  .prompt {
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+  }
   .display {
     font-size: 5rem;
-    padding: 2em 0;
+    padding: 2em 0 1em 0;
     text-align: center;
     .typed {
       color: #aaa;
       padding: 0 0 0 1em;
-      border-top: 1px solid #eee;
-      border-bottom: 1px solid #eee;
     }
     .raw_typed {
       color: #aaa;
     }
     .will_typing {
       padding: 0 1em 0 0;
-      border-top: 1px solid #eee;
-      border-bottom: 1px solid #eee;
     }
     .hint {
       font-size: 3rem;
@@ -668,7 +476,7 @@ main {
       border-radius: 1em;
       padding: 1em;
       position: relative;
-      margin-bottom: 5rem;
+      margin-top: -20rem;
       min-width: 30em;
       min-height: 10em;
       text-align: center;
@@ -683,6 +491,21 @@ main {
   }
   .clickable {
     cursor: pointer;
+  }
+  .debug {
+    position: fixed;
+    right: 0;
+    top: 0;
+    background: rgba(0, 0, 0, 0.3);
+    > dd::before {
+      content: "[";
+    }
+    > dd::after {
+      content: "]";
+    }
+  }
+  .hidden {
+    visibility: hidden;
   }
 }
 </style>
