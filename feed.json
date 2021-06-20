@@ -1,0 +1,15 @@
+{
+    "version": "https://jsonfeed.org/version/1",
+    "title": "ぷみてく",
+    "home_page_url": "https://pumi.tech",
+    "description": "ぷログラミング みニてくニック",
+    "items": [
+        {
+            "id": "https://pumi.tech/home",
+            "url": "https://pumi.tech/home",
+            "title": "Home",
+            "summary": "ホーム\nテスト",
+            "date_modified": "2021-06-20T14:20:43.391Z"
+        }
+    ]
+}

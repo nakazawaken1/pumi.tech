@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id/>
+    <title>ぷみてく</title>
+    <updated>2021-06-20T14:21:33.556Z</updated>
+    <generator>https://github.com/nuxt-community/feed-module</generator>
+    <link rel="alternate" href="https://pumi.tech"/>
+    <subtitle>ぷログラミング みニてくニック</subtitle>
+    <contributor>
+        <name>nakazawaken1</name>
+        <email>nakazawaken1@gmail.com</email>
+        <uri>https://pumi.tech</uri>
+    </contributor>
+    <entry>
+        <title type="html"><![CDATA[Home]]></title>
+        <id>https://pumi.tech/home</id>
+        <link href="https://pumi.tech/home"/>
+        <updated>2021-06-20T14:20:43.391Z</updated>
+        <summary type="html"><![CDATA[ホーム
+テスト]]></summary>
+    </entry>
+</feed>

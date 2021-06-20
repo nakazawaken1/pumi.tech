@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+    <channel>
+        <title>ぷみてく</title>
+        <link>https://pumi.tech</link>
+        <description>ぷログラミング みニてくニック</description>
+        <lastBuildDate>Sun, 20 Jun 2021 14:21:33 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>https://github.com/nuxt-community/feed-module</generator>
+        <item>
+            <title><![CDATA[Home]]></title>
+            <link>https://pumi.tech/home</link>
+            <guid>https://pumi.tech/home</guid>
+            <pubDate>Sun, 20 Jun 2021 14:20:43 GMT</pubDate>
+            <description><![CDATA[ホーム
+テスト]]></description>
+        </item>
+    </channel>
+</rss>
