@@ -15,7 +15,7 @@
     "@nuxtjs/pwa": "^3.3.5",
     "@nuxtjs/sitemap": "^2.4.0",
     "core-js": "^3.9.1",
-    "nuxt": "^2.15.6"
+    "nuxt": "^3.0.0"
   },
   "devDependencies": {
     "@fortawesome/free-brands-svg-icons": "^5.15.3",
